@@ -20,7 +20,7 @@ function _check_DNS {
   dig +short TXT $NAME @8.8.8.8 | sed 's/"//g'
 }
 
-# https://api.cloudflare.com/#zone-list-zones
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_domain_list
 function _get_zone_id {
   local DOMAIN="${1}"
   len=$(($(echo $DOMAIN | tr '.' ' ' | wc -w)-1))
@@ -37,6 +37,7 @@ function _get_zone_id {
   done
 }
 
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_domain_list
 function _get_bare_domain {
   local DOMAIN="${1}"
   len=$(($(echo $DOMAIN | tr '.' ' ' | wc -w)-1))
@@ -53,7 +54,7 @@ function _get_bare_domain {
   done
 }
 
-#https://api.cloudflare.com/#dns-records-for-a-zone-dns-record-details
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_record_create
 function _get_txt_record_id {
   local ZONE_ID="${1}" NAME="${2}" TOKEN="${3}"
   result=$(_memset_get "dns.zone_info?id=$ZONE_ID")
@@ -93,7 +94,7 @@ function deploy_challenge {
 
 }
 
-#https://api.cloudflare.com/#dns-records-for-a-zone-delete-dns-record
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_record_delete
 function clean_challenge {
   local DOMAIN="${1}" TOKEN="${3}"
 
