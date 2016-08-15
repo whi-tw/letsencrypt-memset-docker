@@ -127,6 +127,4 @@ function unchanged_cert {
 # check environmental vars
 [ -z "$MEMSET_KEY" ] && echo "Need to set MEMSET_KEY" && exit 1
 
-DEBUG=True
-
 HANDLER=$1; shift; $HANDLER $@
