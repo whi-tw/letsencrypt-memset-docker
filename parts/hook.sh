@@ -2,7 +2,7 @@
 function _debug() {
   if [[ $DEBUG ]]
   then
-    echo " + $*"
+    echo " ++ $*"
   fi
 }
 
@@ -10,9 +10,9 @@ function _info() {
   echo " + $*"
 }
 
-function _cf_get {
+function _memset_get {
   local URL="${1}"
-  curl -s -X GET "https://api.cloudflare.com/client/v4/$URL" -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json"
+  curl -s -X GET "https://$MEMSET_KEY:x@api.memset.com/v1/json/$URL" -H "Content-Type: application/json"
 }
 
 function _check_DNS {
@@ -26,11 +26,27 @@ function _get_zone_id {
   len=$(($(echo $DOMAIN | tr '.' ' ' | wc -w)-1))
   for i in $(seq $len)
   do
-    result=$(_cf_get "zones?name=$DOMAIN")
-    id=$(echo $result | jq -r '.result[0].id')
-    if [ "$id" != "null" ]
+    result=$(_memset_get "dns.zone_domain_list")
+    id=$(echo $result | jq -r ".[] | select(.domain==\"$DOMAIN\").zone_id")
+    if [ "$id" != "" ]
     then
       echo $id
+      return
+    fi
+    DOMAIN=$(echo $DOMAIN | cut -d "." -f 2-)
+  done
+}
+
+function _get_bare_domain {
+  local DOMAIN="${1}"
+  len=$(($(echo $DOMAIN | tr '.' ' ' | wc -w)-1))
+  for i in $(seq $len)
+  do
+    result=$(_memset_get "dns.zone_domain_list")
+    id=$(echo $result | jq -r ".[] | select(.domain==\"$DOMAIN\").zone_id")
+    if [ "$id" != "" ]
+    then
+      echo $DOMAIN
       return
     fi
     DOMAIN=$(echo $DOMAIN | cut -d "." -f 2-)
@@ -40,8 +56,8 @@ function _get_zone_id {
 #https://api.cloudflare.com/#dns-records-for-a-zone-dns-record-details
 function _get_txt_record_id {
   local ZONE_ID="${1}" NAME="${2}" TOKEN="${3}"
-  result=$(_cf_get "zones/$ZONE_ID/dns_records?type=TXT&name=$NAME&content=$TOKEN")
-  echo $result | jq -r '.result[0].id'
+  result=$(_memset_get "dns.zone_info?id=$ZONE_ID")
+  echo $result | jq -r ".records[] | select(.type==\"TXT\") | select(.record==\"$NAME\") | select(.address==\"$TOKEN\").id"
 }
 
 # https://api.cloudflare.com/#dns-records-for-a-zone-create-dns-record
@@ -49,15 +65,25 @@ function deploy_challenge {
   local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
   _debug "Creating Challenge: $1: $3"
   ZONE_ID=$(_get_zone_id $DOMAIN)
+  BARE_DOMAIN=$(_get_bare_domain $DOMAIN)
   _debug "Got Zone ID $ZONE_ID"
-  NAME="_acme-challenge.$DOMAIN"
-
-  result=$(curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records" -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json" --data "{\"type\":\"TXT\",\"name\":\"$NAME\",\"content\":\"$TOKEN_VALUE\",\"ttl\":1}")
-  RECORD_ID=$(echo $result | jq -r '.result.id')
+  NAME=$(echo "_acme-challenge.$DOMAIN" | sed "s/.$BARE_DOMAIN//")
+  result=$(_memset_get "dns.zone_record_create?zone_id=$ZONE_ID&type=TXT&record=$NAME&address=$TOKEN_VALUE&ttl=0")
+  RECORD_ID=$(echo $result | jq -r '.id')
   _debug "TXT record created, ID: $RECORD_ID"
-
-  _info "Settling down for 10s..."
+  reload=$(_memset_get 'dns.reload')
+  RELOAD_ID=$(echo $reload | jq -r '.id')
+  _debug "Reload job started with ID: $RELOAD_ID"
+  _info "Waiting 10s for DNS reload to complete...."
   sleep 10
+
+  while [ $(_memset_get "job.status?id=$RELOAD_ID" | jq '.finished') == false ]
+  do
+    _info "Reload not complete. Waiting another 10s...."
+    sleep 10
+  done
+
+  _info "DNS Reload completed. Checking for propagation..."
 
   while [ "$(_check_DNS $NAME)" != "$TOKEN_VALUE" ]
   do
@@ -79,11 +105,12 @@ function clean_challenge {
 
   ZONE_ID=$(_get_zone_id $DOMAIN)
   _debug "Got Zone ID $ZONE_ID"
-  NAME="_acme-challenge.$DOMAIN"
+  BARE_DOMAIN=$(_get_bare_domain $DOMAIN)
+  NAME=$(echo "_acme-challenge.$DOMAIN" | sed "s/.$BARE_DOMAIN//")
   RECORD_ID=$(_get_txt_record_id $ZONE_ID $NAME $TOKEN)
   _debug "Deleting TXT record, ID: $RECORD_ID"
 
-  result=$(curl -s -X DELETE "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/dns_records/$RECORD_ID" -H "X-Auth-Email: $CF_EMAIL" -H "X-Auth-Key: $CF_KEY" -H "Content-Type: application/json")
+  result=$(_memset_get "dns.zone_record_delete?id=$RECORD_ID")
 }
 
 function deploy_cert {
@@ -97,7 +124,8 @@ function unchanged_cert {
 }
 
 # check environmental vars
-[ -z "$CF_EMAIL" ] && echo "Need to set CF_EMAIL" && exit 1
-[ -z "$CF_KEY" ] && echo "Need to set CF_EMAIL" && exit 1
+[ -z "$MEMSET_KEY" ] && echo "Need to set MEMSET_KEY" && exit 1
+
+DEBUG=True
 
 HANDLER=$1; shift; $HANDLER $@
