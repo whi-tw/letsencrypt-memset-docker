@@ -54,14 +54,14 @@ function _get_bare_domain {
   done
 }
 
-# https://www.memset.com/apidocs/methods_dns.html#dns.zone_record_create
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_info
 function _get_txt_record_id {
   local ZONE_ID="${1}" NAME="${2}" TOKEN="${3}"
   result=$(_memset_get "dns.zone_info?id=$ZONE_ID")
   echo $result | jq -r ".records[] | select(.type==\"TXT\") | select(.record==\"$NAME\") | select(.address==\"$TOKEN\").id"
 }
 
-# https://api.cloudflare.com/#dns-records-for-a-zone-create-dns-record
+# https://www.memset.com/apidocs/methods_dns.html#dns.zone_record_create
 function deploy_challenge {
   local DOMAIN="${1}" TOKEN_FILENAME="${2}" TOKEN_VALUE="${3}"
   _debug "Creating Challenge: $1: $3"
