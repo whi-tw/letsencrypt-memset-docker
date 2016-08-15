@@ -30,8 +30,8 @@ This can be set up when logged in via: https://www.memset.com/control/api/keys/
 
 ## Installation
 
-    git pull https://github.com/tnwhitwell/letsencrypt-cloudflare-docker
-    cd letsencrypt-cloudflare-docker
+    git pull https://github.com/tnwhitwell/letsencrypt-memset-docker
+    cd letsencrypt-memset-docker
     cp run.sh.example run.sh
 
     open run.sh in an editor
