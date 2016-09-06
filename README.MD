@@ -30,7 +30,7 @@ This can be set up when logged in via: https://www.memset.com/control/api/keys/
 
 ## Installation
 
-    git pull https://github.com/tnwhitwell/letsencrypt-memset-docker
+    git clone https://github.com/tnwhitwell/letsencrypt-memset-docker
     cd letsencrypt-memset-docker
     cp run.sh.example run.sh
 
