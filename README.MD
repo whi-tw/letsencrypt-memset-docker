@@ -44,7 +44,7 @@ enter domains, one line per certificate, with SAN names as per:
 
     example.com alternate.com subdomain.example.com
     anothercert.com test.anothercert.com
-
+<!-- break -->
 
     ./run.sh
 
