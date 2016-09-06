@@ -88,6 +88,7 @@ function deploy_challenge {
 
   while [ "$(_check_DNS $NAME)" != "$TOKEN_VALUE" ]
   do
+    _debug "\"$(_check_DNS $NAME)\" != \"$TOKEN_VALUE\""
     _info "DNS not propagated, waiting 30s..."
     sleep 30
   done
