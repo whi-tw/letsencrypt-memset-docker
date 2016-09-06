@@ -15,4 +15,8 @@ ADD parts/dig /usr/local/bin/dig
 
 RUN rm -rf /var/cache/apk/*
 
-ENTRYPOINT /letsencrypt.sh/run.sh
+VOLUME ["/letsencrypt.sh/accounts"]
+VOLUME ["/letsencrypt.sh/certs"]
+VOLUME ["/letsencrypt.sh/domains.txt"]
+
+CMD ["/letsencrypt.sh/run.sh"]
