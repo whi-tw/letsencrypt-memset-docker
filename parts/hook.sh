@@ -68,7 +68,8 @@ function deploy_challenge {
   ZONE_ID=$(_get_zone_id $DOMAIN)
   BARE_DOMAIN=$(_get_bare_domain $DOMAIN)
   _debug "Got Zone ID $ZONE_ID"
-  NAME=$(echo "_acme-challenge.$DOMAIN" | sed "s/.$BARE_DOMAIN//")
+  FQDN="_acme-challenge.$DOMAIN"
+  NAME=$(echo "$FQDN" | sed "s/.$BARE_DOMAIN//")
   result=$(_memset_get "dns.zone_record_create?zone_id=$ZONE_ID&type=TXT&record=$NAME&address=$TOKEN_VALUE&ttl=0")
   RECORD_ID=$(echo $result | jq -r '.id')
   _debug "TXT record created, ID: $RECORD_ID"
@@ -86,9 +87,9 @@ function deploy_challenge {
 
   _info "DNS Reload completed. Checking for propagation..."
 
-  while [ "$(_check_DNS $NAME)" != "$TOKEN_VALUE" ]
+  while [ "$(_check_DNS $FQDN)" != "$TOKEN_VALUE" ]
   do
-    _debug "\"$(_check_DNS $NAME)\" != \"$TOKEN_VALUE\""
+    _debug "\"$(_check_DNS $FQDN)\" != \"$TOKEN_VALUE\""
     _info "DNS not propagated, waiting 30s..."
     sleep 30
   done
