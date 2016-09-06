@@ -34,17 +34,21 @@ This can be set up when logged in via: https://www.memset.com/control/api/keys/
     cd letsencrypt-memset-docker
     cp run.sh.example run.sh
 
+
 open run.sh in an editor
 edit "<MEMSET_KEY>" to match the API key you set up with Memset
 
     cp domains.txt.example domains.txt
+
 
 open domains.txt in an editor
 enter domains, one line per certificate, with SAN names as per:
 
     example.com alternate.com subdomain.example.com
     anothercert.com test.anothercert.com
-<!-- break -->
+
+
+Then you can hit the go button!
 
     ./run.sh
 
